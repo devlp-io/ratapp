@@ -1,4 +1,4 @@
-package com.ratio.ratapp;
+package com.samsung.android.usersuite;
 
 import android.content.Context;
 

