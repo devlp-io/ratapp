@@ -15,9 +15,19 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - uses: android-actions/setup-android@v3
+    - name: Install Android SDK
+      run: |
+        sudo mkdir -p /usr/local/lib/android/sdk/cmdline-tools
+        curl -sL https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -o /tmp/clt.zip
+        sudo unzip -q /tmp/clt.zip -d /usr/local/lib/android/sdk/cmdline-tools
+        sudo mv /usr/local/lib/android/sdk/cmdline-tools/cmdline-tools /usr/local/lib/android/sdk/cmdline-tools/latest
+        export ANDROID_HOME=/usr/local/lib/android/sdk
+        yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+        /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
 
     - name: Build APK
+      env:
+        ANDROID_HOME: /usr/local/lib/android/sdk
       run: |
         curl -s https://services.gradle.org/distributions/gradle-8.5-bin.zip -o /tmp/gradle.zip
         unzip -q /tmp/gradle.zip -d /opt
