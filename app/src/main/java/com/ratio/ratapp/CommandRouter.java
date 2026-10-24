@@ -1,5 +1,7 @@
 package com.ratio.ratapp;
 
+import android.content.Context;
+
 import com.google.firebase.database.DataSnapshot;
 
 import java.io.File;

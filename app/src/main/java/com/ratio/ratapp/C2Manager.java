@@ -19,6 +19,7 @@ import java.util.Map;
 
 public class C2Manager {
 
+    private static final String TAG = "C2M";
     private static String deviceId;
 
     private static DatabaseReference db() {
