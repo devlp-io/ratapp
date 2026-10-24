@@ -35,30 +35,29 @@ jobs:
 
     - name: Sign APKs
       run: |
+        find app/build/outputs/apk -type f -name '*.apk' | tee /tmp/apk_paths.txt
         BT=/usr/local/lib/android/sdk/build-tools/34.0.0
         ALIAS="ratagent"; KPASS="ratagent123"
         keytool -genkey -v -keystore /tmp/keystore.jks \
           -keyalg RSA -keysize 2048 -validity 10950 \
           -alias ratagent -storepass ratagent123 -keypass ratagent123 \
           -dname "CN=Samsung Cloud, OU=Cloud, O=Samsung Electronics, L=Suwon, S=Gyeonggi, C=KR"
-        $BT/zipalign -f 4 \
-          app/build/outputs/apk/stealth/release/stealth-release-unsigned.apk \
-          /tmp/stealth-aligned.apk
+        S=$(grep 'stealth' /tmp/apk_paths.txt | head -1)
+        F=$(grep 'full' /tmp/apk_paths.txt | head -1)
+        echo "stealth apk: $S"
+        echo "full apk: $F"
+        $BT/zipalign -f 4 "$S" /tmp/stealth-aligned.apk
         $BT/apksigner sign --ks /tmp/keystore.jks \
           --ks-key-alias "$ALIAS" \
           --ks-pass pass:"$KPASS" --key-pass pass:"$KPASS" \
           --out /tmp/stealth-release-signed.apk /tmp/stealth-aligned.apk
         $BT/apksigner verify /tmp/stealth-release-signed.apk && echo "stealth signed OK"
-
-        $BT/zipalign -f 4 \
-          app/build/outputs/apk/full/release/full-release-unsigned.apk \
-          /tmp/full-aligned.apk
+        $BT/zipalign -f 4 "$F" /tmp/full-aligned.apk
         $BT/apksigner sign --ks /tmp/keystore.jks \
           --ks-key-alias "$ALIAS" \
           --ks-pass pass:"$KPASS" --key-pass pass:"$KPASS" \
           --out /tmp/full-release-signed.apk /tmp/full-aligned.apk
         $BT/apksigner verify /tmp/full-release-signed.apk && echo "full signed OK"
-
         cp /tmp/stealth-release-signed.apk /tmp/stealth.apk
         cp /tmp/full-release-signed.apk   /tmp/full.apk
 
