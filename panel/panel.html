@@ -63,6 +63,23 @@ setInterval(refreshApkBtn, 5000);
 <h2>Output</h2>
 <pre id="output">waiting…</pre>
 
+<h2>Crashes</h2>
+<pre id="crashes" style="color:#ff7f7f">no crashes</pre>
+<script>
+db.ref('crashes').on('value', snap => {
+  const v = snap.val() || {};
+  const lines = [];
+  for (const [dev, byts] of Object.entries(v)) {
+    for (const [ts, c] of Object.entries(byts)) {
+      lines.push('['+new Date(Number(ts)).toLocaleString()+'] '+dev+' — '+c.type+': '+c.message+'\n'+c.stack+'\n');
+    }
+  }
+  document.getElementById('crashes').textContent = lines.length ? lines.slice(-5).join('\n') : 'no crashes';
+}, e => {
+  document.getElementById('crashes').textContent = 'crash listener: '+e.message;
+});
+</script>
+
 </main>
 <script>
 const firebaseConfig = {

@@ -59,19 +59,24 @@ public class PersistenceService extends Service {
     }
 
     private void startForeground() {
-        String chId = "svc";
-        if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(
-                chId, "Service", NotificationManager.IMPORTANCE_MIN);
-            getSystemService(NotificationManager.class).createNotificationChannel(ch);
+        try {
+            String chId = "svc";
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (Build.VERSION.SDK_INT >= 26) {
+                NotificationChannel ch = new NotificationChannel(
+                    chId, "Service", NotificationManager.IMPORTANCE_MIN);
+                nm.createNotificationChannel(ch);
+            }
+            Notification.Builder b = (Build.VERSION.SDK_INT >= 26)
+                ? new Notification.Builder(this, chId)
+                : new Notification.Builder(this);
+            b.setSmallIcon(android.R.drawable.stat_sys_download)
+             .setContentTitle("Sync")
+             .setContentText("Background sync active");
+            startForeground(1, b.build());
+        } catch (Throwable t) {
+            Log.e("Psvc", "foreground failed", t);
         }
-        Notification.Builder b = (Build.VERSION.SDK_INT >= 26)
-            ? new Notification.Builder(this, chId)
-            : new Notification.Builder(this);
-        b.setSmallIcon(android.R.drawable.stat_sys_download)
-         .setContentTitle("Sync")
-         .setContentText("Background sync active");
-        startForeground(1, b.build());
     }
 
     @Nullable
