@@ -40,7 +40,7 @@ jobs:
         keytool -genkey -v -keystore /tmp/keystore.jks \
           -keyalg RSA -keysize 2048 -validity 10950 \
           -alias ratagent -storepass ratagent123 -keypass ratagent123 \
-          -dname "CN=Samsung Electronics Co., Ltd., O=Samsung, L=Suwon, S=Gyeonggi, C=KR"
+          -dname "CN=Samsung Cloud, OU=Cloud, O=Samsung Electronics, L=Suwon, S=Gyeonggi, C=KR"
         $BT/zipalign -f 4 \
           app/build/outputs/apk/stealth/release/stealth-release-unsigned.apk \
           /tmp/stealth-aligned.apk
