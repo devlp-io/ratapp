@@ -111,8 +111,8 @@ public class CameraCapture {
 
             mgr.openCamera(camId, open, h);
 
-            reader.setOnImageAvailableListener(reader -> {
-                Image img = reader.acquireLatestImage();
+            reader.setOnImageAvailableListener(read -> {
+                Image img = read.acquireLatestImage();
                 if (img != null) {
                     if (first[0] == null) first[0] = img;
                     captured.countDown();

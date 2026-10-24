@@ -8,6 +8,8 @@ import android.content.pm.PackageManager;
 import android.os.BatteryManager;
 import android.util.Log;
 
+import java.io.File;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
